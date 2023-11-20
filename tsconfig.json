@@ -1,0 +1,18 @@
+{
+    "include": [
+        "**/*.ts",
+        "**/*.tsx"
+    ],
+    "compilerOptions": {
+        "outDir": "./dist",
+        "baseUrl": ".",
+        "noImplicitAny": false,
+        "types": [
+            "node",
+            "jest"
+        ],
+    },
+    "exclude": [
+        "node_modules"
+    ],
+}
