@@ -47,7 +47,7 @@ const RTCPeerConnectionConfig = {
 };
 
 socket.on("connect", function () {
-  id.innerHTML = `Connected to the server: ${socket.id}`;
+  id.innerHTML = `${socket.id}`;
 });
 
 socket.on("user", function (args) {
@@ -58,21 +58,19 @@ socket.on("call-initiated", function (args) {
   callAlert.innerHTML = "Incoming call from " + args.callerId?.callerId;
 });
 
-socket.on("call-initiated", function (args) {
-  callAlert.innerHTML = "Incoming call from " + args.callerId?.callerId;
-});
 
 socket.on("call-accepted", async function (args) {
   callStatus.innerHTML = "Connecting " + args.userId?.userId;
   peerConnection.setRemoteDescription(
-    new RTCSessionDescription(args.members[0].offer)
+    new RTCSessionDescription(args.members[args.members.length - 1].offer)
   );
-  const answer = await peerConnection.createAnswer(offerOptions);
+  const answer = await peerConnection.createAnswer();
   await peerConnection.setLocalDescription(new RTCSessionDescription(answer));
 
   // Send the answer to the caller.
   socket.emit("answer-created", {
     answer: answer,
+    userId: args.userId?.userId
   });
 });
 
@@ -83,13 +81,14 @@ socket.on("answer-received", function (args) {
 });
 
 socket.on("ice-candidate-received", async function (args) {
-  console.log(localPeerConnection);
   if (localPeerConnection && localPeerConnection.remoteDescription !== null) {
     await localPeerConnection.addIceCandidate(args);
+    console.log(localPeerConnection.getSenders());
   }
   // console.log(args);
   if (peerConnection && peerConnection.remoteDescription !== null) {
     await peerConnection.addIceCandidate(args);
+    console.log(peerConnection.getSenders());
   }
 });
 
@@ -102,6 +101,7 @@ async function onLocalICECandidate(event) {
         candidate: event?.candidate?.candidate,
         sdpMLineIndex: event?.candidate?.sdpMLineIndex,
         sdpMid: event?.candidate?.sdpMid,
+        ...event.candidate
       });
       // await localPeerConnection.addIceCandidate(iceCandidate);
       // console.log(
@@ -125,6 +125,7 @@ async function onICECandidate(event) {
         candidate: event?.candidate?.candidate,
         sdpMLineIndex: event?.candidate?.sdpMLineIndex,
         sdpMid: event?.candidate?.sdpMid,
+        ...event.candidate
       });
       // await peerConnection.addIceCandidate(iceCandidate);
       // console.log(
@@ -141,22 +142,24 @@ async function onICECandidate(event) {
 
 function onLocalICECandidateConnectionChange(event) {
   console.log(event);
-  if (peerConnection.connectionState === "connected") {
-    console.log("connected");
+  console.log(localPeerConnection.connectionState);
+  if (localPeerConnection.connectionState === "connected") {
+    console.log("wlllll");
     if (!socket) return;
     socket.emit("connection-established", {
-      hello: "world",
+      peer: socket.id,
+      connectionState: event.targetconnectionState,
     });
   }
 }
 
 function onICECandidateConnectionChange(event) {
-  console.log(event);
+  console.log("hllll");
   if (peerConnection.connectionState === "connected") {
-    console.log("connected");
     if (!socket) return;
     socket.emit("connection-established", {
-      hello: "world",
+      peer: socket.id,
+      connectionState: event.targetconnectionState,
     });
   }
 }
@@ -169,9 +172,18 @@ function onLocalICECandidateConnectionError(event) {
   console.log("onLocalICECandidateConnectionError: ", event);
 }
 async function onNegotiationNeeded(event) {
-  console.log("onNegotiationNeeded: ", event);
+  console.log("onNegotiationNeeded: ", event?.target.currentRemoteDescription
+  );
   try {
+    // const answer = await peerConnection.createAnswer();
+    // await peerConnection.setLocalDescription(new RTCSessionDescription(answer));
 
+  
+    // Send the answer to the caller.
+    // socket.emit("answer-created", {
+    //  answer,
+    //   // userId: args.userId?.userId
+    // });
   } catch (error) {
     console.log(error);
   }
@@ -179,8 +191,9 @@ async function onNegotiationNeeded(event) {
 
 async function onLocalNegotiationNeeded(event) {
   try {
-      // const offer = await localPeerConnection.createOffer(offerOptions);
-      // await localPeerConnection.setLocalDescription(new RTCSessionDescription(offer));
+    const offer = await localPeerConnection.createOffer(offerOptions);
+    await localPeerConnection.setLocalDescription(offer);
+    socket.emit("init-call", { callerId: socket.id, offer });
   } catch (error) {
     console.log(error);
   }
@@ -202,6 +215,7 @@ async function onTrack(event) {
 }
 
 async function onRemoteTrack(event) {
+  console.log(event);
   const remoteAudio = document.querySelector("#remoteAudio");
   remoteAudio.srcObject = event.streams[0];
 }

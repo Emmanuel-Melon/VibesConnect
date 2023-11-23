@@ -84,7 +84,7 @@ io.on("connection", (socket) => {
 
     socket.on("new-ice-candidate", (arg) => {
         console.log(arg.candidate);
-        socket.emit("ice-candidate-received", {
+        socket.broadcast.emit("ice-candidate-received", {
             ...arg.candidate
         });
     });

