@@ -6,6 +6,7 @@ const hangupButton = document.querySelector("#hangupButton");
 const answerButton = document.querySelector("#answerButton");
 const peerConnections = new Map();
 let myPeerConnection;
+let localStream;
 
 function updateUI(members) {
   console.log(members);
@@ -60,10 +61,8 @@ answerButton.addEventListener("click", async () => {
 });
 
 hangupButton.addEventListener("click", () => {
-  localStream.getTracks().forEach((track) => track.stop());
+  // localStream.getTracks().forEach((track) => track.stop());
   myPeerConnection.close();
-  myPeerConnection.close();
-  myPeerConnection = null;
   myPeerConnection = null;
 });
 
