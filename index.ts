@@ -22,7 +22,7 @@ const members = [];
 // app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-const port = 5000;
+const port = 8000;
 
 app.get("/", (req, res) => {
     // This route is not strictly necessary, but you can use it for additional logic if needed
@@ -30,8 +30,25 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", (socket) => {
+
     socket.emit("user", {
-        user: socket.rooms.values().next().value
+        user: socket.rooms.values().next().value,
+        
+    });
+
+    socket.on("save-name", arg => {
+        const clients = io.sockets.adapter.rooms.get(socket.id);
+        console.log("clients", clients);
+        console.log("members", Array.from(clients));
+        socket.emit("member-joined", {
+            members: Array.from(clients).map(member => {
+                return {
+                    type: "user",
+                    ...arg
+                }
+            })
+        });
+        
     });
 
     socket.on("init-call", (arg) => {

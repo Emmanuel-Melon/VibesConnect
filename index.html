@@ -29,26 +29,44 @@
       (function e(t, w, d) {
         var s = d.createElement("script");
         s.src = "http://staging.syncnet.io/js/loader.js";
-        s.setAttribute('async', '');
+        s.setAttribute("async", "");
         s.onload = async () => {
           await lRo(d, t, w);
         };
         d.getElementsByTagName("body")[0].appendChild(s);
       })("ZPdKEY4iVe13", window, document);
-      </script>
-      
+    </script>
   </head>
   <body>
     <div class="flex p-4 gap-2">
       <div class="flex-1 space-y-2">
         <div class="card w-96 bg-base-100 shadow-md">
           <div class="card-body">
-            <div class="badge badge-success gap-2">Connected</div>
-            <h2 class="card-title text-xl mx-auto my-8 bg-primary-content text-primary-focus w-fit p-2" id="userId">Caller</h2>
-            <p  id="call-status" class="bg-accent-content text-accent-focus w-fit p-2"></p>
-            <p id="call-alert" class="bg-secondary-content text-secondary-focus w-fit p-2"></p>
-            <audio id="localAudio" controls autoplay></audio>
-            <audio id="remoteAudio" controls autoplay></audio>
+            <div class="space-y-2">
+              <label class="form-control w-full max-w-xs">
+                <div class="label">
+                  <span class="label-text">What is your name?</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Type here"
+                  class="input input-bordered w-full max-w-xs"
+                  id="userName"
+                />
+              </label>
+              <button class="btn btn-sm" id="saveName">Save</button>
+            </div>
+
+            <p
+              id="call-status"
+              class="bg-accent-content text-accent-focus w-fit p-2"
+            ></p>
+            <p
+              id="call-alert"
+              class="bg-secondary-content text-secondary-focus w-fit p-2"
+            ></p>
+            <audio id="localAudio" autoplay controls></audio>
+            <audio id="remoteAudio" autoplay controls></audio>
             <div class="card-actions justify-end">
               <button class="btn btn-sm btn-sm btn-primary" id="call">
                 Call
@@ -60,6 +78,14 @@
                 Answer
               </button>
             </div>
+          </div>
+        </div>
+        <div class="card card-compact shadow">
+          <div class="card-body">
+            <div class="flex gap-4 items-center" id="room-member">
+
+            </div>
+            
           </div>
         </div>
       </div>

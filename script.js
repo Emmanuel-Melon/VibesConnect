@@ -1,9 +1,44 @@
-const callButon = document.querySelector("#call");
+const callButton = document.querySelector("#call");
 const callAlert = document.querySelector("#call-alert");
 const callStatus = document.querySelector("#call-status");
 const id = document.querySelector("#userId");
 const hangupButton = document.querySelector("#hangupButton");
 const answerButton = document.querySelector("#answerButton");
+const peerConnections = new Map();
+let myPeerConnection;
+
+function updateUI(members) {
+  console.log(members);
+  const roomMemberElement = document.getElementById("room-member");
+  roomMemberElement.innerHTML = "";
+ 
+  if (members.length === 0) {
+    roomMemberElement.innerHTML = "Room is empty";
+  } else {
+    members.forEach((member) => {
+      const memberElement = document.createElement("div");
+      memberElement.innerHTML = `
+        <div class="flex">
+          <div class="avatar placeholder">
+            <div class="bg-neutral text-neutral-content rounded-full w-12">
+              <span>${member.userName.charAt(0)}</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3 class="card-title text-sm">${member.userName}</h3>
+          <div class="badge badge-success gap-2">Connected: ${member.id}</div>
+        </div>
+      `;
+      roomMemberElement.appendChild(memberElement);
+    });
+  }
+ }
+
+document.getElementById("saveName").addEventListener("click", function() {
+  const userName = document.getElementById("userName").value;
+  socket.emit("save-name", { userName, id: socket.id });
+ });
 
 answerButton.addEventListener("click", async () => {
   const mediaStreamConstraints = {
@@ -19,23 +54,23 @@ answerButton.addEventListener("click", async () => {
 
   // Add tracks from the media stream to the peer connection.
   mediaStream.getTracks().forEach((track) => {
-    peerConnection.addTrack(track, mediaStream);
+    myPeerConnection.addTrack(track, mediaStream);
   });
   socket.emit("call-accepted", { userId: socket.id });
 });
 
 hangupButton.addEventListener("click", () => {
   localStream.getTracks().forEach((track) => track.stop());
-  localPeerConnection.close();
-  peerConnection.close();
-  localPeerConnection = null;
-  peerConnection = null;
+  myPeerConnection.close();
+  myPeerConnection.close();
+  myPeerConnection = null;
+  myPeerConnection = null;
 });
 
 const socket = io();
 
-let localPeerConnection;
-let peerConnection;
+// let myPeerConnection;
+// let myPeerConnection;
 const offerOptions = {
   offerToReceiveAudio: 1,
   offerToReceiveVideo: 0,
@@ -47,11 +82,14 @@ const RTCPeerConnectionConfig = {
 };
 
 socket.on("connect", function () {
-  id.innerHTML = `${socket.id}`;
+  
 });
 
 socket.on("user", function (args) {
-  console.log("user", args);
+  console.log("user", args.users);
+  myPeerConnection = new RTCPeerConnection();
+  peerConnections.set(args.user, myPeerConnection);
+  console.log(peerConnections);
 });
 
 socket.on("call-initiated", function (args) {
@@ -61,11 +99,11 @@ socket.on("call-initiated", function (args) {
 
 socket.on("call-accepted", async function (args) {
   callStatus.innerHTML = "Connecting " + args.userId?.userId;
-  peerConnection.setRemoteDescription(
+  myPeerConnection.setRemoteDescription(
     new RTCSessionDescription(args.members[args.members.length - 1].offer)
   );
-  const answer = await peerConnection.createAnswer();
-  await peerConnection.setLocalDescription(new RTCSessionDescription(answer));
+  const answer = await myPeerConnection.createAnswer();
+  await myPeerConnection.setLocalDescription(new RTCSessionDescription(answer));
 
   // Send the answer to the caller.
   socket.emit("answer-created", {
@@ -75,20 +113,28 @@ socket.on("call-accepted", async function (args) {
 });
 
 socket.on("answer-received", function (args) {
-  localPeerConnection.setRemoteDescription(
+  myPeerConnection.setRemoteDescription(
     new RTCSessionDescription(args?.answer?.answer)
   );
 });
 
+
+socket.on("member-joined", function (args) {
+  console.log(args.members);
+  const members = [];
+  members.push();
+  updateUI(members.concat(args.members));
+});
+
 socket.on("ice-candidate-received", async function (args) {
-  if (localPeerConnection && localPeerConnection.remoteDescription !== null) {
-    await localPeerConnection.addIceCandidate(args);
-    console.log(localPeerConnection.getSenders());
+  if (myPeerConnection && myPeerConnection.remoteDescription !== null) {
+    await myPeerConnection.addIceCandidate(args);
+    console.log(myPeerConnection.getSenders());
   }
   // console.log(args);
-  if (peerConnection && peerConnection.remoteDescription !== null) {
-    await peerConnection.addIceCandidate(args);
-    console.log(peerConnection.getSenders());
+  if (myPeerConnection && myPeerConnection.remoteDescription !== null) {
+    await myPeerConnection.addIceCandidate(args);
+    console.log(myPeerConnection.getSenders());
   }
 });
 
@@ -103,7 +149,7 @@ async function onLocalICECandidate(event) {
         sdpMid: event?.candidate?.sdpMid,
         ...event.candidate
       });
-      // await localPeerConnection.addIceCandidate(iceCandidate);
+      // await myPeerConnection.addIceCandidate(iceCandidate);
       // console.log(
       //   `Added received ICE candidate: ${event.candidate.candidate}`,
       // );
@@ -127,7 +173,7 @@ async function onICECandidate(event) {
         sdpMid: event?.candidate?.sdpMid,
         ...event.candidate
       });
-      // await peerConnection.addIceCandidate(iceCandidate);
+      // await myPeerConnection.addIceCandidate(iceCandidate);
       // console.log(
       //   `Added received ICE candidate: ${event.candidate.candidate}`,
       // );
@@ -142,8 +188,8 @@ async function onICECandidate(event) {
 
 function onLocalICECandidateConnectionChange(event) {
   console.log(event);
-  console.log(localPeerConnection.connectionState);
-  if (localPeerConnection.connectionState === "connected") {
+  console.log(myPeerConnection.connectionState);
+  if (myPeerConnection.connectionState === "connected") {
     console.log("wlllll");
     if (!socket) return;
     socket.emit("connection-established", {
@@ -155,7 +201,7 @@ function onLocalICECandidateConnectionChange(event) {
 
 function onICECandidateConnectionChange(event) {
   console.log("hllll");
-  if (peerConnection.connectionState === "connected") {
+  if (myPeerConnection.connectionState === "connected") {
     if (!socket) return;
     socket.emit("connection-established", {
       peer: socket.id,
@@ -175,8 +221,8 @@ async function onNegotiationNeeded(event) {
   console.log("onNegotiationNeeded: ", event?.target.currentRemoteDescription
   );
   try {
-    // const answer = await peerConnection.createAnswer();
-    // await peerConnection.setLocalDescription(new RTCSessionDescription(answer));
+    // const answer = await myPeerConnection.createAnswer();
+    // await myPeerConnection.setLocalDescription(new RTCSessionDescription(answer));
 
   
     // Send the answer to the caller.
@@ -191,8 +237,8 @@ async function onNegotiationNeeded(event) {
 
 async function onLocalNegotiationNeeded(event) {
   try {
-    const offer = await localPeerConnection.createOffer(offerOptions);
-    await localPeerConnection.setLocalDescription(offer);
+    const offer = await myPeerConnection.createOffer(offerOptions);
+    await myPeerConnection.setLocalDescription(offer);
     socket.emit("init-call", { callerId: socket.id, offer });
   } catch (error) {
     console.log(error);
@@ -200,13 +246,13 @@ async function onLocalNegotiationNeeded(event) {
 }
 
 async function initRTCPeerConnection() {
-  peerConnection = new RTCPeerConnection(RTCPeerConnectionConfig);
+  myPeerConnection = new RTCPeerConnection(RTCPeerConnectionConfig);
 
-  peerConnection.onicecandidate = onICECandidate;
-  peerConnection.onconnectionstatechange = onICECandidateConnectionChange;
-  peerConnection.onicecandidateerror = onICECandidateConnectionError;
-  peerConnection.onnegotiationneeded = onNegotiationNeeded;
-  peerConnection.ontrack = onRemoteTrack;
+  myPeerConnection.onicecandidate = onICECandidate;
+  myPeerConnection.onconnectionstatechange = onICECandidateConnectionChange;
+  myPeerConnection.onicecandidateerror = onICECandidateConnectionError;
+  myPeerConnection.onnegotiationneeded = onNegotiationNeeded;
+  myPeerConnection.ontrack = onRemoteTrack;
 }
 
 async function onTrack(event) {
@@ -221,20 +267,20 @@ async function onRemoteTrack(event) {
 }
 
 async function initRTCLocalPeerConnection() {
-  localPeerConnection = new RTCPeerConnection(RTCPeerConnectionConfig);
+  myPeerConnection = new RTCPeerConnection(RTCPeerConnectionConfig);
   socket.emit("create-local-peer", {
-    localPeer: JSON.stringify(localPeerConnection),
+    localPeer: JSON.stringify(myPeerConnection),
   });
 
-  const offer = await localPeerConnection.createOffer(offerOptions);
-  await localPeerConnection.setLocalDescription(offer);
+  const offer = await myPeerConnection.createOffer(offerOptions);
+  await myPeerConnection.setLocalDescription(offer);
 
-  localPeerConnection.onicecandidate = onLocalICECandidate;
-  localPeerConnection.onconnectionstatechange =
+  myPeerConnection.onicecandidate = onLocalICECandidate;
+  myPeerConnection.onconnectionstatechange =
     onLocalICECandidateConnectionChange;
-  localPeerConnection.onicecandidateerror = onLocalICECandidateConnectionError;
-  localPeerConnection.onnegotiationneeded = onLocalNegotiationNeeded;
-  localPeerConnection.ontrack = onTrack;
+  myPeerConnection.onicecandidateerror = onLocalICECandidateConnectionError;
+  myPeerConnection.onnegotiationneeded = onLocalNegotiationNeeded;
+  myPeerConnection.ontrack = onTrack;
 
   socket.emit("init-call", { callerId: socket.id, offer });
 }
@@ -267,7 +313,7 @@ function onMediaStreamActivation(stream) {
   const audioTracks = stream.getAudioTracks();
   if (audioTracks.length > 0) {
     localStream.getTracks().forEach((track) => {
-      localPeerConnection.addTrack(track, localStream);
+      myPeerConnection.addTrack(track, localStream);
     });
     if (socket) {
       socket.emit("media-stream-success", {
@@ -279,4 +325,4 @@ function onMediaStreamActivation(stream) {
   return stream;
 }
 
-callButon.addEventListener("click", initCallProcess);
+callButton.addEventListener("click", initCallProcess);
